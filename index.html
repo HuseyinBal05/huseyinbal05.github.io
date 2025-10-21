@@ -3,37 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Schedule Viewer</title>
+    <title>My Class Schedule</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        #schedule-container td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; vertical-align: top; }
-        .schedule-link.active { background-color: #e0f2fe; color: #0c4a6e; font-weight: 600; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Add some padding and borders to table cells for a better grid view */
+        #schedule-container td {
+            border: 1px solid #e5e7eb; /* gray-200 */
+            padding: 0.5rem 0.75rem;
+            vertical-align: top; /* Align content to the top of merged cells */
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl"> <!-- Increased max-width for wider schedules -->
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-900">Class Schedule</h1>
-            <p class="text-lg text-gray-600 mt-2">Select a schedule from the list below to view its contents.</p>
+            <p class="text-lg text-gray-600 mt-2">Upload your class schedule from an Excel file to view it below.</p>
         </header>
 
         <main>
             <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Available Schedules</h2>
-                <!-- This list will be populated automatically by the script -->
-                <div id="schedule-list" class="flex flex-col space-y-2">
-                    <p class="text-gray-500">Loading schedule list...</p>
-                </div>
+                <label for="file-upload" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p class="text-xs text-gray-500">XLSX, XLS, or CSV file</p>
+                    </div>
+                    <input id="file-upload" type="file" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(event)" />
+                </label>
+                <div id="file-name" class="mt-4 text-center text-sm text-gray-500"></div>
             </div>
 
-            <div id="schedule-container" class="bg-white rounded-lg shadow-md overflow-x-auto min-h-[20rem]">
-                 <div id="placeholder" class="p-8 text-center text-gray-500 flex items-center justify-center h-full">
-                    <p>Select a schedule above to begin.</p>
+            <div id="schedule-container" class="bg-white rounded-lg shadow-md overflow-x-auto"> <!-- Added horizontal scroll for very wide schedules -->
+                <!-- Schedule will be rendered here -->
+                <div class="p-8 text-center text-gray-500" id="placeholder">
+                    Your schedule will appear here once you upload a file.
                 </div>
+            </div>
+             <div class="text-center mt-4">
+                <a href="sample-schedule.xlsx" download="sample-schedule.xlsx" class="text-blue-500 hover:underline">Download Simple Sample Schedule</a>
             </div>
         </main>
 
@@ -43,128 +57,205 @@
     </div>
 
     <script>
-        // --- ⚙️ 1. CONFIGURATION ---
-        // IMPORTANT: Replace these values with your GitHub username and repository name.
-        const config = {
-            githubUsername: "HuseyinBal05", // <-- CHANGE THIS
-            repositoryName: "huseyinbal05.github.io", // <-- CHANGE THIS
-            schedulesFolder: "schedules" // This is the folder where you store your .xlsx files
+        // Main function to handle the file upload
+        const handleFile = (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const fileNameDisplay = document.getElementById('file-name');
+            fileNameDisplay.textContent = `File: ${file.name}`;
+
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                renderSchedule(json);
+            };
+            reader.readAsArrayBuffer(file);
+        };
+        
+        const colorPalette = [
+            'bg-sky-50 text-sky-800', 'bg-amber-50 text-amber-800', 'bg-violet-50 text-violet-800',
+            'bg-emerald-50 text-emerald-800', 'bg-rose-50 text-rose-800', 'bg-indigo-50 text-indigo-800',
+            'bg-cyan-50 text-cyan-800', 'bg-fuchsia-50 text-fuchsia-800', 'bg-lime-50 text-lime-800',
+            'bg-pink-50 text-pink-800', 'bg-teal-50 text-teal-800', 'bg-orange-50 text-orange-800'
+        ];
+
+        // Function to determine the style of a cell based on its content
+        const getCellStyles = (cellData, rowDataStr, courseColors) => {
+            const text = cellData.toString().trim().toLowerCase();
+            const rowText = rowDataStr.toLowerCase();
+            let classes = 'break-words';
+
+            if (rowText.includes('üniversitesi') || rowText.includes('university') || rowText.includes('komi̇te') || rowText.includes('committee')) {
+                return 'font-bold bg-gray-200 text-gray-900';
+            }
+            if (rowText.includes('week')) {
+                return 'font-semibold bg-gray-100 text-gray-700 text-center';
+            }
+            const isDateRow = /\d{4}-\d{2}-\d{2}/.test(rowText);
+            if (isDateRow) {
+                return 'font-semibold bg-gray-100 text-center';
+            }
+            if (/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(text)) {
+                return 'font-semibold bg-gray-100 text-gray-900 text-center text-xs';
+            }
+
+            if (text.includes('bireysel') || text.includes('freelance')) {
+                classes += ' bg-green-50 text-green-800 text-sm';
+            } else if (text !== '') {
+                 const courseName = cellData.toString().split('\n')[0].trim();
+                 if (courseColors.has(courseName)) {
+                     classes += ` ${courseColors.get(courseName)}`;
+                 } else {
+                     classes += ' bg-gray-50 text-gray-800';
+                 }
+            } else {
+                classes += ' bg-gray-50';
+            }
+
+            return classes;
         };
 
-        // --- Helper functions and rendering logic (no changes needed below this line) ---
-        const monthMap = { /* ...omitted for brevity... */ };
-        const parseCellToLocalDate = (cell) => { /* ...omitted for brevity... */ };
-        const formatDateDDMMYYYY = (d) => { /* ...omitted for brevity... */ };
-        const colorPalette = [ /* ...omitted for brevity... */ ];
-        const getCellStyles = (cellData, rowDataStr, courseColors) => { /* ...omitted for brevity... */ };
-        const formatCellHTML = (cellData) => { /* ...omitted for brevity... */ };
-        monthMap={'january':0,'february':1,'march':2,'april':3,'may':4,'june':5,'july':6,'august':7,'september':8,'october':9,'november':10,'december':11,'ocak':0,'şubat':1,'mart':2,'nisan':3,'mayıs':4,'haziran':5,'temmuz':6,'ağustos':7,'eylül':8,'ekim':9,'kasım':10,'aralık':11};parseCellToLocalDate=cell=>{if('string'!=typeof cell)return null;const e=cell.trim();let t=e.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(t)return new Date(parseInt(t[1]),parseInt(t[2])-1,parseInt(t[3]));if(t=e.toLowerCase().match(/^(\d{1,2})\s+([a-zşığüçö]+)\s+(\d{4})$/)){const n=parseInt(t[1]),a=t[2],s=parseInt(t[3]);if(a in monthMap)return new Date(s,monthMap[a],n)}return null};formatDateDDMMYYYY=d=>{const e=new Date(d),t=String(e.getDate()).padStart(2,'0'),n=String(e.getMonth()+1).padStart(2,'0'),a=e.getFullYear();return`${t}.${n}.${a}`};colorPalette=['bg-sky-50 text-sky-800','bg-amber-50 text-amber-800','bg-violet-50 text-violet-800','bg-emerald-50 text-emerald-800','bg-rose-50 text-rose-800','bg-indigo-50 text-indigo-800','bg-cyan-50 text-cyan-800','bg-fuchsia-50 text-fuchsia-800','bg-lime-50 text-lime-800','bg-pink-50 text-pink-800','bg-teal-50 text-teal-800','bg-orange-50 text-orange-800'];getCellStyles=(cellData,rowDataStr,courseColors)=>{const e=cellData.trim().toLowerCase(),t=rowDataStr.toLowerCase();let n='break-words';return t.includes('üniversitesi')||t.includes('university')||t.includes('komi̇te')||t.includes('committee')?'font-bold bg-gray-200 text-gray-900':t.includes('week')?'font-semibold bg-gray-100 text-gray-700 text-center':parseCellToLocalDate(cellData)?'font-semibold bg-gray-100 text-center':/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(e)?'font-semibold bg-gray-100 text-gray-900 text-center text-xs':e.includes('bireysel')||e.includes('freelance')?(n+=' bg-green-50 text-green-800 text-sm'):''!==e?n+=` ${courseColors.get(cellData.split('\n')[0].trim())||'bg-gray-50 text-gray-800'}`:n+=' bg-gray-50',n};formatCellHTML=cellData=>{const e=parseCellToLocalDate(cellData);if(e)return formatDateDDMMYYYY(e);const t=cellData;if(/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(t.trim())||t.toLowerCase().includes('freelance')||t.toLowerCase().includes('bireysel'))return t;const n=t.split('\n').map(e=>e.trim()).filter(e=>e);return 0===n.length?'':1===n.length?`<span class="font-semibold text-sm">${n[0]}</span>`:(e=>`<span class="font-semibold text-sm block">${n[0]}</span>`)(),2===n.length?`${`<span class="font-semibold text-sm block">${n[0]}</span>`}<span class="text-xs block">${n[1]}</span>`:(t=>`<span class="text-xs italic text-gray-600 block mt-1">${n[n.length-1]}</span>`)(),e=n.slice(1,n.length-1).map(e=>`<span class="text-xs block">${e}</span>`).join(''),`${`<span class="font-semibold text-sm block">${n[0]}</span>`}${e}${`<span class="text-xs italic text-gray-600 block mt-1">${n[n.length-1]}</span>`}`};
+        const formatCellHTML = (cellData) => {
+            const text = cellData.toString();
+            if (/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(text.trim()) || text.toLowerCase().includes('freelance') || text.toLowerCase().includes('bireysel')) {
+                return text;
+            }
 
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+
+            if (lines.length === 0) return '';
+            if (lines.length === 1) return `<span class="font-semibold text-sm">${lines[0]}</span>`;
+
+            const className = `<span class="font-semibold text-sm block">${lines[0]}</span>`;
+            if (lines.length === 2) {
+                const topic = `<span class="text-xs block">${lines[1]}</span>`;
+                return `${className}${topic}`;
+            }
+
+            const doctorName = `<span class="text-xs italic text-gray-600 block mt-1">${lines[lines.length - 1]}</span>`;
+            const topics = lines.slice(1, lines.length - 1).map(line => `<span class="text-xs block">${line}</span>`).join('');
+            return `${className}${topics}${doctorName}`;
+        };
+
+        // Function to render the schedule data into a styled HTML table
         const renderSchedule = (data) => {
             const container = document.getElementById('schedule-container');
+            const placeholder = document.getElementById('placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+            
             let filteredData = data.filter(row => Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== ''));
-            if (filteredData.length === 0) { container.innerHTML = '<div class="p-8 text-center text-red-500">No data found in file.</div>'; return; }
+
+            if (filteredData.length === 0) {
+                 container.innerHTML = '<div class="p-8 text-center text-red-500">No data found in the file.</div>';
+                return;
+            }
+
             let englishStartIndex = 0;
             const headerRow = filteredData.find(row => row.join(' ').toLowerCase().includes('university'));
-            if (headerRow) { const universityCellIndex = headerRow.findIndex(cell => cell.toString().toLowerCase().includes('university')); if (universityCellIndex > 0) englishStartIndex = universityCellIndex; }
-            let englishData = filteredData.map(row => row.slice(englishStartIndex));
-            let expectedColumnCount = 0;
-            const dateHeaderRow = englishData.find(row => row.some(c => parseCellToLocalDate(c) !== null));
-            if (dateHeaderRow) { expectedColumnCount = dateHeaderRow.length; } else if (englishData.length > 0) { expectedColumnCount = englishData[0].length; }
-            const trimmedData = englishData.map(row => row.slice(0, expectedColumnCount));
-            const mergedData = [];
-            for (const row of trimmedData) {
-                const isTimeRow = row[0] && /^\d{2}\.\d{2}/.test(row[0].toString());
-                const isHeaderRow = row.join(' ').toLowerCase().includes('committee') || row.some(c => parseCellToLocalDate(c) !== null) || row.join(' ').toLowerCase().includes('week') || row.join(' ').toLowerCase().includes('university');
-                if (isHeaderRow || isTimeRow) { mergedData.push([...row]); }
-                else { const lastRow = mergedData.length > 0 ? mergedData[mergedData.length - 1] : null; if (lastRow && lastRow[0] && /^\d{2}\.\d{2}/.test(lastRow[0].toString())) { for (let j = 0; j < row.length; j++) { const detailCell = (row[j] || '').toString().trim(); if (detailCell) { const targetCell = (lastRow[j] || "").toString().trim(); if (!['freelance', 'bireysel'].some(kw => targetCell.toLowerCase().includes(kw))) { lastRow[j] = targetCell ? `${targetCell}\n${detailCell}` : detailCell; } } } } }
+            if (headerRow) {
+                const universityCellIndex = headerRow.findIndex(cell => cell.toString().toLowerCase().includes('university'));
+                if (universityCellIndex > 0) englishStartIndex = universityCellIndex;
             }
+
+            let englishData = filteredData.map(row => row.slice(englishStartIndex));
+            
+            const mergedData = [];
+            for (const row of englishData) {
+                const rowText = row.join(' ').toLowerCase();
+                const isTimeRow = row[0] && /^\d{2}\.\d{2}/.test(row[0].toString());
+                const isHeaderRow = rowText.includes('university') || rowText.includes('committee') || /\d{4}-\d{2}-\d{2}/.test(rowText) || rowText.includes('week');
+
+                if (isHeaderRow || isTimeRow) {
+                    mergedData.push([...row]);
+                } else {
+                    const lastRow = mergedData.length > 0 ? mergedData[mergedData.length - 1] : null;
+                    const lastRowIsTimeRow = lastRow && lastRow[0] && /^\d{2}\.\d{2}/.test(lastRow[0].toString());
+
+                    if (lastRowIsTimeRow) {
+                        for (let j = 0; j < row.length; j++) {
+                            const detailCell = row[j]?.toString().trim();
+                            if (detailCell) {
+                                const targetCell = lastRow[j]?.toString().trim() || "";
+                                const targetIsFree = ['freelance', 'bireysel'].some(kw => targetCell.toLowerCase().includes(kw));
+
+                                if (!targetIsFree) {
+                                    lastRow[j] = targetCell ? `${targetCell}\n${detailCell}` : detailCell;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const finalData = mergedData.filter(row => {
+                const rowText = row.join(' ').toLowerCase();
+                const isTimeRow = row[0] && /^\d{2}\.\d{2}/.test(row[0].toString());
+                const isHeaderRow = rowText.includes('university') || rowText.includes('committee') || /\d{4}-\d{2}-\d{2}/.test(rowText) || rowText.includes('week');
+                return isTimeRow || isHeaderRow;
+            });
+
             const courseColors = new Map();
             let nextColorIndex = 0;
-            mergedData.forEach(row => { row.forEach(cell => { const cellText = (cell || '').toString().trim(); if (cellText && !/^\d{2}\.\d{2}/.test(cellText) && !cellText.toLowerCase().includes('freelance')) { const courseName = cellText.split('\n')[0].trim(); if (courseName && !courseColors.has(courseName)) { courseColors.set(courseName, colorPalette[nextColorIndex % colorPalette.length]); nextColorIndex++; } } }); });
-            container.innerHTML = '';
-            const table = document.createElement('table'); table.className = 'min-w-full'; const tbody = document.createElement('tbody');
-            mergedData.forEach((rowData) => { const row = document.createElement('tr'); const rowDataStr = Array.isArray(rowData) ? rowData.join(' ').trim() : ''; const isTimeRow = rowData[0] && /^\d{2}\.\d{2}/.test(rowData[0].toString()); const isLunchTime = (rowData[0] || '').toString().trim().startsWith('12.15'); const hasNoClasses = !rowData.slice(1).some(cell => cell && cell.toString().trim() !== ''); if (isTimeRow && isLunchTime && hasNoClasses) { const timeCell = document.createElement('td'); timeCell.className = getCellStyles(rowData[0], rowDataStr, courseColors); timeCell.textContent = rowData[0]; row.appendChild(timeCell); const lunchCell = document.createElement('td'); lunchCell.colSpan = rowData.length - 1; lunchCell.className = 'text-center font-semibold text-gray-500 bg-gray-50'; lunchCell.textContent = 'Lunch Break'; row.appendChild(lunchCell); } else { rowData.forEach(cellData => { const cell = document.createElement('td'); cell.className = getCellStyles(cellData || '', rowDataStr, courseColors); cell.innerHTML = formatCellHTML(cellData || ''); row.appendChild(cell); }); } tbody.appendChild(row); });
-            table.appendChild(tbody); container.appendChild(table);
-        };
-        
-        const loadScheduleFromUrl = async (url, activeLink) => {
-            const container = document.getElementById('schedule-container');
-            document.querySelectorAll('.schedule-link').forEach(link => link.classList.remove('active'));
-            if (activeLink) activeLink.classList.add('active');
-            container.innerHTML = `<div class="p-8 text-center text-gray-500">Loading schedule...</div>`;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
-                const arrayBuffer = await response.arrayBuffer();
-                const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
-                renderSchedule(json);
-            } catch (error) {
-                console.error('Error loading schedule:', error);
-                container.innerHTML = `<div class="p-8 text-center text-red-500"><strong>Error:</strong> Could not load schedule file.<br><small>Ensure the file exists at: ${url}</small></div>`;
-            }
-        };
-
-        // --- NEW: Automatically builds the schedule list from GitHub ---
-        const initializeSchedules = async () => {
-            const listContainer = document.getElementById('schedule-list');
-            const apiUrl = `https://api.github.com/repos/${config.githubUsername}/${config.repositoryName}/contents/${config.schedulesFolder}`;
-
-            try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error(`GitHub API error: ${response.statusText}`);
-                
-                const files = await response.json();
-                const scheduleFiles = files.filter(file => file.name.endsWith('.xlsx'));
-
-                if (scheduleFiles.length === 0) {
-                    listContainer.innerHTML = `<p class="text-orange-500">No schedules found in the '${config.schedulesFolder}' folder.</p>`;
-                    return;
-                }
-
-                listContainer.innerHTML = ''; // Clear "Loading..." message
-
-                scheduleFiles.forEach(file => {
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.className = 'schedule-link p-3 rounded-md hover:bg-gray-100 transition-colors';
-                    link.dataset.url = file.path; // Use the file path for loading
-                    link.textContent = formatScheduleName(file.name);
-                    
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        loadScheduleFromUrl(e.currentTarget.dataset.url, e.currentTarget);
-                    });
-                    
-                    listContainer.appendChild(link);
+            finalData.forEach(row => {
+                row.forEach(cell => {
+                    const cellText = cell.toString().trim();
+                    if (cellText && !/^\d{2}\.\d{2}/.test(cellText) && !cellText.toLowerCase().includes('freelance')) {
+                        const courseName = cellText.split('\n')[0].trim();
+                        if (courseName && !courseColors.has(courseName)) {
+                            courseColors.set(courseName, colorPalette[nextColorIndex % colorPalette.length]);
+                            nextColorIndex++;
+                        }
+                    }
                 });
+            });
 
-                // Auto-load the first schedule
-                if (listContainer.firstChild) {
-                    loadScheduleFromUrl(listContainer.firstChild.dataset.url, listContainer.firstChild);
+            container.innerHTML = '';
+            const table = document.createElement('table');
+            table.className = 'min-w-full';
+            const tbody = document.createElement('tbody');
+            
+            finalData.forEach((rowData, rowIndex) => {
+                const row = document.createElement('tr');
+                const rowDataStr = Array.isArray(rowData) ? rowData.join(' ').trim() : '';
+                
+                const isTimeRow = rowData[0] && /^\d{2}\.\d{2}/.test(rowData[0].toString());
+                const isLunchTime = rowData[0]?.toString().trim().startsWith('12.15');
+                const hasNoClasses = !rowData.slice(1).some(cell => cell && cell.toString().trim() !== '');
+
+                if (isTimeRow && isLunchTime && hasNoClasses) {
+                    const timeCell = document.createElement('td');
+                    timeCell.className = getCellStyles(rowData[0], rowDataStr, courseColors);
+                    timeCell.textContent = rowData[0];
+                    row.appendChild(timeCell);
+
+                    const lunchCell = document.createElement('td');
+                    lunchCell.colSpan = rowData.length - 1; 
+                    lunchCell.className = 'text-center font-semibold text-gray-500 bg-gray-50';
+                    lunchCell.textContent = 'Lunch Break';
+                    row.appendChild(lunchCell);
+                } else {
+                    rowData.forEach(cellData => {
+                        const cell = document.createElement('td');
+                        cell.className = getCellStyles(cellData, rowDataStr, courseColors);
+                        cell.innerHTML = formatCellHTML(cellData || '');
+                        row.appendChild(cell);
+                    });
                 }
+                tbody.appendChild(row);
+            });
 
-            } catch (error) {
-                console.error("Failed to fetch schedule list:", error);
-                listContainer.innerHTML = `<p class="text-red-500"><strong>Error:</strong> Could not load schedule list from GitHub.<br><small>Please check your username and repository name in the script configuration.</small></p>`;
-            }
+            table.appendChild(tbody);
+            container.appendChild(table);
         };
-        
-        // Helper to make file names more readable
-        const formatScheduleName = (fileName) => {
-            return fileName
-                .replace('.xlsx', '')
-                .replace(/_/g, ' ')
-                .replace(/-/g, ' ')
-                .replace(/D1/g, 'Dönem 1')
-                .replace(/V\d+/g, ''); // Removes version numbers like V20
-        };
-
-        document.addEventListener('DOMContentLoaded', initializeSchedules);
     </script>
 </body>
 </html>
-
 
