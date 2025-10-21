@@ -11,6 +11,11 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Add some padding and borders to table cells for a better grid view */
+        #schedule-container td {
+            border: 1px solid #e5e7eb; /* gray-200 */
+            padding: 0.5rem 0.75rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -25,7 +30,7 @@
             <div class="bg-white rounded-lg shadow-md p-6 mb-8">
                 <label for="file-upload" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
                         <p class="text-xs text-gray-500">XLSX, XLS, or CSV file</p>
                     </div>
@@ -65,18 +70,52 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = new Uint8Array(e.target.result);
-                // Use XLSX library to parse the file data
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                // Convert sheet to an array of arrays to handle complex structures without assuming a header row
                 const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
                 renderSchedule(json);
             };
             reader.readAsArrayBuffer(file);
         };
+        
+        // Function to determine the style of a cell based on its content
+        const getCellStyles = (cellData, rowDataStr) => {
+            const text = cellData.toString().trim().toLowerCase();
+            const rowText = rowDataStr.toLowerCase();
+            let classes = 'whitespace-normal break-words text-sm text-gray-800';
 
-        // Function to render the schedule data into an HTML table
+            // Major headers like University or Committee name
+            if (rowText.includes('üniversitesi') || rowText.includes('university') || rowText.includes('komi̇te') || rowText.includes('committee')) {
+                return 'font-bold bg-gray-200 text-gray-900';
+            }
+            
+            // Sub-headers like dates or days of the week
+            const isDateRow = /\d{4}-\d{2}-\d{2}/.test(rowText);
+            if (isDateRow) {
+                return 'font-semibold bg-gray-100 text-center';
+            }
+            
+            // Time cells
+            if (/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(text)) {
+                return 'font-semibold bg-gray-100 text-gray-900 text-center';
+            }
+
+            // Specific keywords for classes vs free time
+            if (text.includes('bireysel') || text.includes('freelance')) {
+                classes += ' bg-green-50 text-green-800';
+            } else if (text !== '') {
+                 // Any other non-empty cell is likely a class topic
+                classes += ' bg-blue-50 text-blue-900';
+            } else {
+                // Empty cells
+                classes += ' bg-gray-50';
+            }
+
+            return classes;
+        };
+
+        // Function to render the schedule data into a styled HTML table
         const renderSchedule = (data) => {
             const container = document.getElementById('schedule-container');
             const placeholder = document.getElementById('placeholder');
@@ -84,7 +123,6 @@
                 placeholder.style.display = 'none';
             }
             
-            // Filter out rows that are completely empty
             const filteredData = data.filter(row => Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== ''));
 
             if (filteredData.length === 0) {
@@ -92,23 +130,22 @@
                 return;
             }
 
-            // Clear previous content
             container.innerHTML = '';
 
             const table = document.createElement('table');
-            table.className = 'min-w-full divide-y divide-gray-200';
+            table.className = 'min-w-full text-xs'; // Use smaller base text size for dense schedules
 
             const tbody = document.createElement('tbody');
-            tbody.className = 'bg-white divide-y divide-gray-200';
             
             filteredData.forEach(rowData => {
                 const row = document.createElement('tr');
+                const rowDataStr = Array.isArray(rowData) ? rowData.join(' ').trim() : '';
+                
                 if (Array.isArray(rowData)) {
                     rowData.forEach(cellData => {
                         const cell = document.createElement('td');
-                        // Use smaller padding and allow word wrapping for complex schedules
-                        cell.className = 'px-3 py-2 whitespace-normal break-words text-sm text-gray-700';
-                        cell.textContent = cellData || ''; // Handle null or undefined cells
+                        cell.className = getCellStyles(cellData, rowDataStr);
+                        cell.textContent = cellData || '';
                         row.appendChild(cell);
                     });
                 }
