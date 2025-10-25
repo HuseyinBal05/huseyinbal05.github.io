@@ -4,21 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personalized PDF Watermarker</title>
-    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load required JavaScript libraries --><!-- PDF-LIB: For creating and editing PDFs --><script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-    <!-- SHEETJS (XLSX): For reading Excel and CSV files --><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <!-- JSZIP: For creating the final .zip file --><script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- JS Libraries for PDF, Excel, and Zipping -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
+    
     <style>
-        /* Updated font stack for a more modern feel */
+        /* Using Inter font, which is loaded via Tailwind by default */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
         body {
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
         }
+        
         /* Custom styles for the file input */
         .file-input-label {
             display: block;
-            padding: 16px 24px; /* More padding */
-            background-color: #ffffff; /* White background for input area */
-            border: 2px dashed #cbd5e1; /* Soft gray dashed border */
+            padding: 16px 24px;
+            background-color: #f8fafc; /* Lighter background (slate-50) */
+            border: 1px solid #e2e8f0; /* Soft gray border (slate-200) */
             border-radius: 12px; /* Slightly more rounded corners */
             cursor: pointer;
             text-align: center;
@@ -26,46 +33,62 @@
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); /* Subtle shadow */
         }
         .file-input-label:hover {
-            background-color: #f8fafc; /* Lighter hover background */
-            border-color: #94a3b8; /* Darker border on hover */
+            background-color: #ffffff; /* White on hover */
+            border-color: #94a3b8; /* Darker border on hover (slate-400) */
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* More pronounced shadow on hover */
         }
         .file-input-label strong {
             display: block; /* Ensure strong is block for spacing */
-            font-size: 1rem; /* Slightly larger text */
-            color: #2563eb; /* Blue text for main prompt */
+            font-size: 1rem;
+            color: #2563eb; /* Blue text for main prompt (blue-600) */
             margin-bottom: 4px; /* Space between strong and span */
         }
         .file-input-label span {
             font-size: 0.875rem; /* Standard smaller text */
-            color: #64748b; /* Soft gray for description */
+            color: #64748b; /* Soft gray for description (slate-500) */
         }
+        
         /* Hide the actual file input */
         input[type="file"] {
             display: none;
         }
+        
         /* Style for disabled button */
         #generateButton:disabled {
-            background-color: #93c5fd; /* Lighter blue when disabled */
+            background-image: none;
+            background-color: #94a3b8; /* slate-400 */
             cursor: not-allowed;
             box-shadow: none;
         }
+
+        /* Gradient text */
+        .gradient-text {
+            background-image: linear-gradient(to right, #3b82f6, #6366f1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
     </style>
-    <!-- Google Fonts - Inter for better typography --><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-6">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-6">
 
     <div class="bg-white w-full max-w-2xl p-10 rounded-2xl shadow-xl border border-gray-100">
-        <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-4">
+        <h1 class="text-4xl font-extrabold text-center mb-4 gradient-text">
             PDF Watermarker
         </h1>
-        <p class="text-center text-gray-600 mb-10 text-lg">
+        <p class="text-center text-slate-600 mb-10 text-lg">
             Create personalized watermarks on PDFs from a list of names. All processing is secure and done in your browser.
         </p>
 
         <div class="space-y-8">
-            <!-- Step 1: Upload PDF --><div>
-                <label for="pdfFile" class="text-xl font-semibold text-gray-800 mb-3 block">Step 1: Upload your Base PDF</label>
+            
+            <!-- Step 1: Upload PDF -->
+            <div>
+                <label for="pdfFile" class="flex items-center space-x-2 text-xl font-semibold text-slate-800 mb-3">
+                    <!-- Icon: Document -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    <span>Step 1: Upload your Base PDF</span>
+                </label>
                 <label for="pdfFile" class="file-input-label">
                     <strong id="pdfFileName">Select PDF file to watermark</strong>
                     <span>Only .pdf files are accepted</span>
@@ -73,8 +96,13 @@
                 <input type="file" id="pdfFile" accept=".pdf">
             </div>
 
-            <!-- Step 2: Upload Excel/CSV --><div>
-                <label for="excelFile" class="text-xl font-semibold text-gray-800 mb-3 block">Step 2: Upload your List of People</label>
+            <!-- Step 2: Upload List -->
+            <div>
+                <label for="excelFile" class="flex items-center space-x-2 text-xl font-semibold text-slate-800 mb-3">
+                    <!-- Icon: Users -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Step 2: Upload your List of People</span>
+                </label>
                 <label for="excelFile" class="file-input-label">
                     <strong id="excelFileName">Select Excel or CSV file</strong>
                     <span>(.xlsx, .xls, .csv files accepted)</span>
@@ -82,30 +110,42 @@
                 <input type="file" id="excelFile" accept=".xlsx, .xls, .csv">
             </div>
 
-            <!-- Step 3: Column Name --><div>
-                <label for="columnName" class="text-xl font-semibold text-gray-800 mb-3 block">Step 3: Specify Name Column</label>
-                <input type="text" id="columnName" placeholder="e.g., 'Full Name' or 'Participant ID'" class="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-400 outline-none transition text-gray-700 placeholder-gray-400 text-lg">
-                <p class="text-sm text-gray-500 mt-2">
+            <!-- Step 3: Column Name -->
+            <div>
+                <label for="columnName" class="flex items-center space-x-2 text-xl font-semibold text-slate-800 mb-3">
+                    <!-- Icon: Edit/Type -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    <span>Step 3: Specify Name Column</span>
+                </label>
+                <input type="text" id="columnName" placeholder="e.g., 'Full Name' or 'Participant ID'" class="w-full px-5 py-3 border border-slate-300 rounded-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-400 outline-none transition text-slate-700 placeholder-slate-400 text-lg">
+                <p class="text-sm text-slate-500 mt-2">
                     Enter the exact header name of the column containing the names (case-insensitive).
                 </p>
             </div>
 
-            <!-- Step 4: Opacity Slider --><div>
-                <label for="opacitySlider" class="text-xl font-semibold text-gray-800 mb-3 block">Step 4: Adjust Watermark Opacity</label>
+            <!-- Step 4: Opacity Slider -->
+            <div>
+                <label for="opacitySlider" class="flex items-center space-x-2 text-xl font-semibold text-slate-800 mb-3">
+                    <!-- Icon: Sliders -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                    <span>Step 4: Adjust Watermark Opacity</span>
+                </label>
                 <div class="flex items-center space-x-4">
-                    <input type="range" id="opacitySlider" min="1" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                    <span id="opacityValue" class="text-lg font-medium text-gray-700 w-12 text-right">0.07</span>
+                    <input type="range" id="opacitySlider" min="1" max="15" value="7" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                    <span id="opacityValue" class="text-lg font-medium text-slate-700 w-12 text-right">0.07</span>
                 </div>
-                <p class="text-sm text-gray-500 mt-2">
+                <p class="text-sm text-slate-500 mt-2">
                     Lower is more transparent, higher is more visible. (Default: 0.07)
                 </p>
             </div>
 
-            <!-- Generate Button --><button id="generateButton" class="w-full bg-blue-600 text-white font-bold py-4 px-8 rounded-xl text-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <!-- Generate Button -->
+            <button id="generateButton" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-8 rounded-xl text-xl hover:from-blue-700 hover:to-indigo-700 transition shadow-xl hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-300 transform hover:-translate-y-0.5">
                 Generate Watermarked PDFs
             </button>
 
-            <!-- Status Area --><div id="status" class="text-center text-gray-600 font-medium pt-4 text-lg" style="display: none;">
+            <!-- Status Message -->
+            <div id="status" class="text-center text-slate-600 font-medium pt-4 text-lg" style="display: none;">
                 Working...
             </div>
         </div>
@@ -158,7 +198,7 @@
 
         async function addWatermark(page, text, font, opacity) {
             const { width, height } = page.getSize();
-            const textSize = 40; // Reduced text size (was 55)
+            const textSize = 40; 
             
             const options = {
                 size: textSize,
@@ -168,9 +208,9 @@
                 rotate: degrees(45), 
             };
 
-            // Increased spacing for a less dense, less distracting look
-            for (let y = -height; y < height * 2; y += 250) { // Was 150
-                for (let x = -width; x < width * 2; x += 350) { // Was 250
+            // Spacing for a less distracting look
+            for (let y = -height; y < height * 2; y += 250) { 
+                for (let x = -width; x < width * 2; x += 350) { 
                     page.drawText(text, { ...options, x, y });
                 }
             }
@@ -278,10 +318,4 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
 
