@@ -3,259 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Class Schedule</title>
+    <title>Personalized PDF Watermarker</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required JavaScript libraries -->
+    <!-- PDF-LIB: For creating and editing PDFs -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+    <!-- FONTKIT: Removed as we are using standard fonts -->
+    <!-- SHEETJS (XLSX): For reading Excel and CSV files -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- JSZIP: For creating the final .zip file -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
     <style>
+        /* Reverted to standard system font */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
         }
-        /* Add some padding and borders to table cells for a better grid view */
-        #schedule-container td {
-            border: 1px solid #e5e7eb; /* gray-200 */
-            padding: 0.5rem 0.75rem;
-            vertical-align: top; /* Align content to the top of merged cells */
+        /* Custom styles for the file input */
+        .file-input-label {
+            display: block;
+            padding: 12px 20px;
+            background-color: #f3f4f6;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .file-input-label:hover {
+            background-color: #e5e7eb;
+            border-color: #9ca3af;
+        }
+        .file-input-label span {
+            display: block;
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+        .file-input-label strong {
+            color: #1f2937;
+        }
+        /* Hide the actual file input */
+        input[type="file"] {
+            display: none;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl"> <!-- Increased max-width for wider schedules -->
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">Class Schedule</h1>
-            <p class="text-lg text-gray-600 mt-2">Upload your class schedule from an Excel file to view it below.</p>
-        </header>
+    <div class="bg-white w-full max-w-2xl p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+            Personalized PDF Watermarker
+        </h1>
+        <p class="text-center text-gray-600 mb-8">
+            Create personalized watermarks on a PDF from a list of names in an Excel/CSV file. All processing is done in your browser.
+        </p>
 
-        <main>
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <label for="file-upload" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                        <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                        <p class="text-xs text-gray-500">XLSX, XLS, or CSV file</p>
-                    </div>
-                    <input id="file-upload" type="file" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(event)" />
+        <div class="space-y-6">
+            <!-- Step 1: Upload PDF -->
+            <div>
+                <label for="pdfFile" class="text-lg font-semibold text-gray-700 mb-2 block">Step 1: Upload your PDF</label>
+                <label for="pdfFile" class="file-input-label">
+                    <strong id="pdfFileName">Click to upload PDF file</strong>
+                    <span>(.pdf)</span>
                 </label>
-                <div id="file-name" class="mt-4 text-center text-sm text-gray-500"></div>
+                <input type="file" id="pdfFile" accept=".pdf">
             </div>
 
-            <div id="schedule-container" class="bg-white rounded-lg shadow-md overflow-x-auto"> <!-- Added horizontal scroll for very wide schedules -->
-                <!-- Schedule will be rendered here -->
-                <div class="p-8 text-center text-gray-500" id="placeholder">
-                    Your schedule will appear here once you upload a file.
-                </div>
+            <!-- Step 2: Upload Excel/CSV -->
+            <div>
+                <label for="excelFile" class="text-lg font-semibold text-gray-700 mb-2 block">Step 2: Upload your list of people</label>
+                <label for="excelFile" class="file-input-label">
+                    <strong id="excelFileName">Click to upload list of people</strong>
+                    <span>(.xlsx, .xls, .csv)</span>
+                </label>
+                <input type="file" id="excelFile" accept=".xlsx, .xls, .csv">
             </div>
-             <div class="text-center mt-4">
-                <a href="sample-schedule.xlsx" download="sample-schedule.xlsx" class="text-blue-500 hover:underline">Download Simple Sample Schedule</a>
-            </div>
-        </main>
 
-        <footer class="text-center mt-8 text-sm text-gray-500">
-            <p>Created for easy schedule viewing. Hosted on GitHub Pages.</p>
-        </footer>
+            <!-- Step 3: Column Name -->
+            <div>
+                <label for="columnName" class="text-lg font-semibold text-gray-700 mb-2 block">Step 3: Enter Name Column</label>
+
+                <input type="text" id="columnName" placeholder="e.g., 'Full Name' or 'Email'" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                <p class="text-sm text-gray-500 mt-2">
+                    Name of the column in your file that contains the names. (Case-insensitive)
+                </p>
+            </div>
+
+            <!-- Generate Button -->
+            <button id="generateButton" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-blue-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                Generate Watermarked PDFs
+            </button>
+
+            <!-- Status Area -->
+            <div id="status" class="text-center text-gray-600 font-medium pt-4" style="display: none;">
+                Working...
+            </div>
+        </div>
     </div>
 
     <script>
-        // Main function to handle the file upload
-        const handleFile = (event) => {
-            const file = event.target.files[0];
-            if (!file) {
+        // Get references to all libraries (loaded from CDN)
+        const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+        // fontkit (removed), XLSX, and JSZip are available on the window object
+        
+        // Get DOM elements
+        const pdfFileInput = document.getElementById('pdfFile');
+        const excelFileInput = document.getElementById('excelFile');
+        const pdfFileName = document.getElementById('pdfFileName');
+        const excelFileName = document.getElementById('excelFileName');
+        const columnNameInput = document.getElementById('columnName');
+        const generateButton = document.getElementById('generateButton');
+        const status = document.getElementById('status');
+
+        /* Removed unused global variables: originalPdfBytes and namesList */
+
+        // Update file input labels with selected file names
+        pdfFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                pdfFileName.textContent = e.target.files[0].name;
+            } else {
+                pdfFileName.textContent = 'Click to upload PDF file';
+            }
+        });
+
+        excelFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                excelFileName.textContent = e.target.files[0].name;
+            } else {
+                excelFileName.textContent = 'Click to upload list of people';
+            }
+        });
+
+        // Main function attached to the button
+        generateButton.addEventListener('click', handleGeneration);
+
+        // Helper function to read a file as an ArrayBuffer
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Helper function to add tiled watermarks to a page
+        async function addWatermark(page, text, font) {
+            const { width, height } = page.getSize();
+            const textSize = 50; // Watermark text size
+            
+            // Watermark properties
+            const options = {
+                size: textSize,
+                font: font,
+                color: rgb(0.5, 0.5, 0.5), // Medium gray
+                opacity: 0.15, // Light opacity
+                rotate: degrees(45), // Diagonal
+            };
+
+            // Tile the watermark across the page
+            // We use nested loops to create a grid pattern
+            // The coordinates are adjusted to cover the whole page even when rotated
+            for (let y = -height; y < height * 2; y += 200) {
+                for (let x = -width; x < width * 2; x += 300) {
+                    page.drawText(text, { ...options, x, y });
+                }
+            }
+        }
+
+        // Main logic
+        async function handleGeneration() {
+            // 1. Get and validate inputs
+            const pdfFile = pdfFileInput.files[0];
+            const excelFile = excelFileInput.files[0];
+            const columnName = columnNameInput.value.trim();
+
+            if (!pdfFile || !excelFile || !columnName) {
+                updateStatus('Please provide a PDF, a list of people, and a column name.', true);
                 return;
             }
 
-            const fileNameDisplay = document.getElementById('file-name');
-            fileNameDisplay.textContent = `File: ${file.name}`;
+            // 2. Disable button and show loading
+            generateButton.disabled = true;
+            generateButton.textContent = 'Processing...';
+            updateStatus('Starting...');
 
+            try {
+                // 2. Load standard font (no network request)
+                /* Combined redundant status messages */
+                updateStatus('Loading font...');
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                // 3. Read Excel/CSV file
+                updateStatus('Reading list of people...');
+                const excelData = await readFileAsArrayBuffer(excelFile);
+                const workbook = XLSX.read(excelData, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                renderSchedule(json);
-            };
-            reader.readAsArrayBuffer(file);
-        };
-        
-        const colorPalette = [
-            'bg-sky-50 text-sky-800', 'bg-amber-50 text-amber-800', 'bg-violet-50 text-violet-800',
-            'bg-emerald-50 text-emerald-800', 'bg-rose-50 text-rose-800', 'bg-indigo-50 text-indigo-800',
-            'bg-cyan-50 text-cyan-800', 'bg-fuchsia-50 text-fuchsia-800', 'bg-lime-50 text-lime-800',
-            'bg-pink-50 text-pink-800', 'bg-teal-50 text-teal-800', 'bg-orange-50 text-orange-800'
-        ];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        // Function to determine the style of a cell based on its content
-        const getCellStyles = (cellData, rowDataStr, courseColors) => {
-            const text = cellData.toString().trim().toLowerCase();
-            const rowText = rowDataStr.toLowerCase();
-            let classes = 'break-words';
-
-            if (rowText.includes('üniversitesi') || rowText.includes('university') || rowText.includes('komi̇te') || rowText.includes('committee')) {
-                return 'font-bold bg-gray-200 text-gray-900';
-            }
-            if (rowText.includes('week')) {
-                return 'font-semibold bg-gray-100 text-gray-700 text-center';
-            }
-            const isDateRow = /\d{4}-\d{2}-\d{2}/.test(rowText);
-            if (isDateRow) {
-                return 'font-semibold bg-gray-100 text-center';
-            }
-            if (/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(text)) {
-                return 'font-semibold bg-gray-100 text-gray-900 text-center text-xs';
-            }
-
-            if (text.includes('bireysel') || text.includes('freelance')) {
-                classes += ' bg-green-50 text-green-800 text-sm';
-            } else if (text !== '') {
-                 const courseName = cellData.toString().split('\n')[0].trim();
-                 if (courseColors.has(courseName)) {
-                     classes += ` ${courseColors.get(courseName)}`;
-                 } else {
-                     classes += ' bg-gray-50 text-gray-800';
-                 }
-            } else {
-                classes += ' bg-gray-50';
-            }
-
-            return classes;
-        };
-
-        const formatCellHTML = (cellData) => {
-            const text = cellData.toString();
-            if (/^\d{2}\.\d{2}-\s?\d{2}\.\d{2}$/.test(text.trim()) || text.toLowerCase().includes('freelance') || text.toLowerCase().includes('bireysel')) {
-                return text;
-            }
-
-            const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-
-            if (lines.length === 0) return '';
-            if (lines.length === 1) return `<span class="font-semibold text-sm">${lines[0]}</span>`;
-
-            const className = `<span class="font-semibold text-sm block">${lines[0]}</span>`;
-            if (lines.length === 2) {
-                const topic = `<span class="text-xs block">${lines[1]}</span>`;
-                return `${className}${topic}`;
-            }
-
-            const doctorName = `<span class="text-xs italic text-gray-600 block mt-1">${lines[lines.length - 1]}</span>`;
-            const topics = lines.slice(1, lines.length - 1).map(line => `<span class="text-xs block">${line}</span>`).join('');
-            return `${className}${topics}${doctorName}`;
-        };
-
-        // Function to render the schedule data into a styled HTML table
-        const renderSchedule = (data) => {
-            const container = document.getElementById('schedule-container');
-            const placeholder = document.getElementById('placeholder');
-            if (placeholder) placeholder.style.display = 'none';
-            
-            let filteredData = data.filter(row => Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== ''));
-
-            if (filteredData.length === 0) {
-                 container.innerHTML = '<div class="p-8 text-center text-red-500">No data found in the file.</div>';
-                return;
-            }
-
-            let englishStartIndex = 0;
-            const headerRow = filteredData.find(row => row.join(' ').toLowerCase().includes('university'));
-            if (headerRow) {
-                const universityCellIndex = headerRow.findIndex(cell => cell.toString().toLowerCase().includes('university'));
-                if (universityCellIndex > 0) englishStartIndex = universityCellIndex;
-            }
-
-            let englishData = filteredData.map(row => row.slice(englishStartIndex));
-            
-            const mergedData = [];
-            for (const row of englishData) {
-                const rowText = row.join(' ').toLowerCase();
-                const isTimeRow = row[0] && /^\d{2}\.\d{2}/.test(row[0].toString());
-                const isHeaderRow = rowText.includes('university') || rowText.includes('committee') || /\d{4}-\d{2}-\d{2}/.test(rowText) || rowText.includes('week');
-
-                if (isHeaderRow || isTimeRow) {
-                    mergedData.push([...row]);
-                } else {
-                    const lastRow = mergedData.length > 0 ? mergedData[mergedData.length - 1] : null;
-                    const lastRowIsTimeRow = lastRow && lastRow[0] && /^\d{2}\.\d{2}/.test(lastRow[0].toString());
-
-                    if (lastRowIsTimeRow) {
-                        for (let j = 0; j < row.length; j++) {
-                            const detailCell = row[j]?.toString().trim();
-                            if (detailCell) {
-                                const targetCell = lastRow[j]?.toString().trim() || "";
-                                const targetIsFree = ['freelance', 'bireysel'].some(kw => targetCell.toLowerCase().includes(kw));
-
-                                if (!targetIsFree) {
-                                    lastRow[j] = targetCell ? `${targetCell}\n${detailCell}` : detailCell;
-                                }
-                            }
-                        }
-                    }
+                if (!jsonData || jsonData.length === 0) {
+                    throw new Error("The list of people file is empty or could not be read.");
                 }
-            }
-            
-            const finalData = mergedData.filter(row => {
-                const rowText = row.join(' ').toLowerCase();
-                const isTimeRow = row[0] && /^\d{2}\.\d{2}/.test(row[0].toString());
-                const isHeaderRow = rowText.includes('university') || rowText.includes('committee') || /\d{4}-\d{2}-\d{2}/.test(rowText) || rowText.includes('week');
-                return isTimeRow || isHeaderRow;
-            });
 
-            const courseColors = new Map();
-            let nextColorIndex = 0;
-            finalData.forEach(row => {
-                row.forEach(cell => {
-                    const cellText = cell.toString().trim();
-                    if (cellText && !/^\d{2}\.\d{2}/.test(cellText) && !cellText.toLowerCase().includes('freelance')) {
-                        const courseName = cellText.split('\n')[0].trim();
-                        if (courseName && !courseColors.has(courseName)) {
-                            courseColors.set(courseName, colorPalette[nextColorIndex % colorPalette.length]);
-                            nextColorIndex++;
-                        }
-                    }
-                });
-            });
-
-            container.innerHTML = '';
-            const table = document.createElement('table');
-            table.className = 'min-w-full';
-            const tbody = document.createElement('tbody');
-            
-            finalData.forEach((rowData, rowIndex) => {
-                const row = document.createElement('tr');
-                const rowDataStr = Array.isArray(rowData) ? rowData.join(' ').trim() : '';
+                // Get the actual headers from the first row of data
+                const headers = Object.keys(jsonData[0]);
                 
-                const isTimeRow = rowData[0] && /^\d{2}\.\d{2}/.test(rowData[0].toString());
-                const isLunchTime = rowData[0]?.toString().trim().startsWith('12.15');
-                const hasNoClasses = !rowData.slice(1).some(cell => cell && cell.toString().trim() !== '');
+                // Find the matching header, ignoring case and whitespace
+                const foundHeader = headers.find(h => h.trim().toLowerCase() === columnName.toLowerCase());
 
-                if (isTimeRow && isLunchTime && hasNoClasses) {
-                    const timeCell = document.createElement('td');
-                    timeCell.className = getCellStyles(rowData[0], rowDataStr, courseColors);
-                    timeCell.textContent = rowData[0];
-                    row.appendChild(timeCell);
-
-                    const lunchCell = document.createElement('td');
-                    lunchCell.colSpan = rowData.length - 1; 
-                    lunchCell.className = 'text-center font-semibold text-gray-500 bg-gray-50';
-                    lunchCell.textContent = 'Lunch Break';
-                    row.appendChild(lunchCell);
-                } else {
-                    rowData.forEach(cellData => {
-                        const cell = document.createElement('td');
-                        cell.className = getCellStyles(cellData, rowDataStr, courseColors);
-                        cell.innerHTML = formatCellHTML(cellData || '');
-                        row.appendChild(cell);
-                    });
+                if (!foundHeader) {
+                    // Throw a more helpful error
+                    throw new Error(`Column "${columnName}" not found. Available columns are: ${headers.map(h => `"${h}"`).join(', ')}`);
                 }
-                tbody.appendChild(row);
-            });
 
-            table.appendChild(tbody);
-            container.appendChild(table);
-        };
+                // 4. Extract names using the *found* header
+                const names = jsonData
+                    .map(row => row[foundHeader]) // Use the actual header name
+                    .filter(name => name); // Filter out empty/undefined names
+
+                if (names.length === 0) {
+                    // This error is now more specific: the column was found, but it's empty.
+                    throw new Error(`Found column "${foundHeader}", but it contains no names.`);
+                }
+                
+                updateStatus(`Found ${names.length} names. Reading PDF...`);
+
+                // 5. Read PDF file (as bytes)
+                const pdfBytes = await readFileAsArrayBuffer(pdfFile);
+
+                // 6. Initialize ZIP file
+                const zip = new JSZip();
+                updateStatus('Starting PDF watermarking...');
+
+                // 7. Loop through each name and process PDF
+                for (let i = 0; i < names.length; i++) {
+                    const name = String(names[i]); // Ensure name is a string
+                    // Reverted to basic sanitization
+                    const sanitizedName = name.replace(/[^a-zA-Z0-9\s._-]/g, '_');
+                    
+                    updateStatus(`Processing ${i + 1} of ${names.length}: ${name}`);
+
+                    // Load the original PDF bytes for each new document
+                    const pdfDoc = await PDFDocument.load(pdfBytes);
+                    
+                    // Removed fontkit registration
+
+                    // Embed the standard Helvetica font
+                    const standardFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                    
+                    const pages = pdfDoc.getPages();
+
+                    // Add watermark to every page
+                    for (const page of pages) {
+                        await addWatermark(page, name, standardFont);
+                    }
+
+                    // Save the modified PDF as new bytes
+                    const newPdfBytes = await pdfDoc.save();
+
+                    // Add the new PDF to the zip file
+                    zip.file(`${sanitizedName}_${pdfFile.name}`, newPdfBytes);
+                }
+
+                // 8. Generate and download ZIP
+                updateStatus('Generating ZIP file... This may take a moment.');
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+                // Create a download link
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipBlob);
+                link.download = 'watermarked_pdfs.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                updateStatus(`Done! ${names.length} PDFs generated and zipped.`);
+
+            } catch (error) {
+                console.error(error);
+                updateStatus(`Error: ${error.message}`, true);
+            } finally {
+                // 9. Re-enable button
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generate Watermarked PDFs';
+            }
+        }
+        
+        // Helper to show messages to the user
+        function updateStatus(message, isError = false) {
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.color = isError ? '#dc2626' : '#4b5563'; // red-600 or gray-600
+        }
+
     </script>
 </body>
 </html>
+
+
 
