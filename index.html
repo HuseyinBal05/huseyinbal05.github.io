@@ -284,7 +284,7 @@
 
                     const newPdfBytes = await pdfDoc.save();
 
-                    zip.file(`${sanitizedName}_${pdfFile.name}`, newPdfBytes);
+                    zip.file(`${sanitizedName}.pdf`, newPdfBytes);
                 }
 
                 updateStatus('Generating ZIP file... This may take a moment.');
@@ -292,7 +292,8 @@
 
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(zipBlob);
-                link.download = `watermarked_pdfs_${new Date().toISOString().slice(0,10)}.zip`; // Dynamic filename
+                const basePdfName = pdfFile.name.replace(/\.pdf$/i, ''); // Remove .pdf extension
+                link.download = `${basePdfName}_watermarked_${new Date().toISOString().slice(0,10)}.zip`; // Dynamic filename includes original PDF name
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -302,7 +303,12 @@
 
             } catch (error) {
                 console.error(error);
-                updateStatus(`Error: ${error.message}`, true);
+                // Make the error message more user-friendly for this specific common error
+                let friendlyMessage = error.message;
+                if (friendlyMessage.startsWith('Column "') && friendlyMessage.includes('not found. Available columns are:')) {
+                    friendlyMessage = `Check your column name. ${friendlyMessage}. Make sure you typed it exactly as it appears in your file (case doesn't matter).`;
+                }
+                updateStatus(`Error: ${friendlyMessage}`, true);
             } finally {
                 generateButton.disabled = false;
                 generateButton.textContent = 'Generate Watermarked PDFs';
@@ -318,4 +324,5 @@
     </script>
 </body>
 </html>
+
 
